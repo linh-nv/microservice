@@ -16,12 +16,9 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
-  },
-  "watchOptions": {
-    // Use a dynamic polling instead of system’s native events for file changes.
-    "watchFile": "dynamicPriorityPolling",
-    "watchDirectory": "dynamicPriorityPolling",
-    "excludeDirectories": ["**/node_modules", "dist"]
+    "noFallthroughCasesInSwitch": false,
+    "strict": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   }
 }

@@ -1,11 +1,6 @@
 import { RoleType, UserStatus } from 'src/Shared/enums';
 import { AbstractEntity } from 'src/Shared/entities/abstract.entity';
-import {
-  Column,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
 @Index(['email'], { unique: true })
@@ -30,6 +25,12 @@ export class UserEntity extends AbstractEntity {
 
   @Column({ type: 'json' })
   params: Record<string, unknown>;
+
+  @Column()
+  password: string;
+
+  @Column()
+  salt: string;
 
   get fullName() {
     return this.firstName + ' ' + this.lastName;

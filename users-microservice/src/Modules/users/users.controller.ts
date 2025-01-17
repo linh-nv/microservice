@@ -1,26 +1,47 @@
-import { Controller } from '@nestjs/common';
-import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
-import { CreateUserDto } from './dtos/CreateUser.dto';
+import { Body, Controller, Headers, Req } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import { UsersService } from './users.service';
+import { DeviceSessionsService } from '../device-sessions/device-sessions.service';
+import SignUpDto from './dtos/sign-up.dto';
+import LoginDto from './dtos/login.dto';
+import ReAuthDto from './dtos/reauth.dto';
 
 @Controller()
 export class UsersMicroserviceController {
-  constructor(private usersService: UsersService) {}
-  @MessagePattern({ cmd: 'createUser' })
-  createUser(@Payload() data: CreateUserDto) {
-    console.log('user', data);
-    
-    return this.usersService.createUser(data);
+  constructor(
+    private usersService: UsersService,
+    private deviceSessionsService: DeviceSessionsService,
+  ) {}
+
+  @MessagePattern({ cmd: 'sign-up' })
+  async signUp(@Body() signUpDto: SignUpDto) {
+    return this.usersService.signUp(signUpDto);
   }
 
-  @MessagePattern({ cmd: 'getUserById' })
-  getUserById(@Payload() data) {
-    const { userId } = data;
-    return this.usersService.getUserById(userId);
+  @MessagePattern({ cmd: 'login' })
+  async login(
+    @Req() req,
+    @Body() loginDto: LoginDto,
+    @Headers() headers: Headers,
+  ) {
+    const fingerprint = req.fingerprint;
+    const ipAddress = req.connection.remoteAddress;
+    const ua = headers['user-agent'];
+    const deviceId = fingerprint.hash;
+    const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+    return this.usersService.login(loginDto, metaData);
   }
 
-  @EventPattern('paymentCreated')
-  paymentCreated(@Payload() data: any) {
-    console.log(data);
+  @MessagePattern({ cmd: 'refresh-token' })
+  async reAuth(@Body() body: ReAuthDto, @Req() req) {
+    const deviceId = req.fingerprint.hash;
+    const { refreshToken } = body;
+    return this.deviceSessionsService.reAuth(deviceId, refreshToken);
   }
+}
+
+export interface LoginMetadata {
+  ipAddress: string;
+  ua: string;
+  deviceId: string;
 }
