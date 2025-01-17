@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from './Modules/users/users.module';
+import { PaymentsModule } from './payments/payments.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserEntity } from './Modules/users/entities/User';
+import { Payment } from './typeorm/entities/Payment';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
@@ -18,13 +18,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get<string>('DATABASE_USER'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [UserEntity],
+        entities: [Payment],
         synchronize: true,
         autoLoadEntities: true,
       }),
       inject: [ConfigService],
     }),
-    UsersModule,
+    PaymentsModule,
   ],
   controllers: [],
   providers: [],

@@ -6,7 +6,7 @@ export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('float')
+  @Column('int')
   amount: number;
 
   @ManyToOne(() => User, (user) => user.payments)

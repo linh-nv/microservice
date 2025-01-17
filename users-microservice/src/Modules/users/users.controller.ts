@@ -8,6 +8,8 @@ export class UsersMicroserviceController {
   constructor(private usersService: UsersService) {}
   @MessagePattern({ cmd: 'createUser' })
   createUser(@Payload() data: CreateUserDto) {
+    console.log('user', data);
+    
     return this.usersService.createUser(data);
   }
 
