@@ -6,7 +6,7 @@ import DeviceSessionEntity from '../device-sessions/device-session.entity';
 import { Repository } from 'typeorm';
 import { JwtStrategy } from './guard/jwt.strategy';
 
-export interface CustomJwtPayload {
+export interface JwtPayload {
   deviceId: string;
   id: string;
   exp: number;
@@ -23,7 +23,7 @@ export default class AuthService {
 
   async getSecretKey(request): Promise<string> {
     const headers = request.headers;
-    const payload = JwtStrategy.decode(headers.authorization) as CustomJwtPayload;
+    const payload = JwtStrategy.decode(headers.authorization) as JwtPayload;
     const { deviceId, id, exp } = payload;
 
     const keyCache = this.getKeyCache(id, deviceId);

@@ -1,21 +1,21 @@
 import {
-  CACHE_MANAGER,
   ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Cache } from 'cache-manager';
 import * as randomatic from 'randomatic';
-import AuthService from 'src/auth/auth.service';
-import { JwtStrategy } from 'src/auth/guard/jwt.strategy';
-import addDay from 'src/helpers/addDay';
-import { LoginMetadata } from 'src/users/users.controller';
+import AuthService from '../auth/auth.service';
+import addDay from '../helpers/addDay';
+import { LoginMetadata } from '../users/users.controller';
 import { Repository } from 'typeorm';
 import DeviceSessionEntity from './device-session.entity';
+import { JwtStrategy } from '../auth/guard/jwt.strategy';
 const { randomUUID } = require('crypto');
 const EXP_SESSION = 7; // 1 week
 export interface LoginRespionse {
