@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { Cache } from 'cache-manager';
 import AuthService from '../auth/auth.service';
-import addDay from '../helpers/addDay';
+import addDay from '../../helpers/addDay';
 import { LoginMetadata } from '../users/users.controller';
 import { Repository } from 'typeorm';
 import DeviceSessionEntity from './device-session.entity';

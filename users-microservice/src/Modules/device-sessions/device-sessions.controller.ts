@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Body, Post } from '@nestjs/common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
-import { UserId } from 'src/Modules/decorators/user.decorator';
+import { UserId } from 'src/decorators/user.decorator';
 import DeviceSessionEntity from './device-session.entity';
 import { DeviceSessionsService } from './device-sessions.service';
 import LogoutDto from './dto/logout.dto';

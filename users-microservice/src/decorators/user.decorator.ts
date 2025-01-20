@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { JwtStrategy } from '../auth/guard/jwt.strategy';
+import { JwtStrategy } from '../Modules/auth/guard/jwt.strategy';
 
 export const UserId = createParamDecorator(
   (data: string, ctx: ExecutionContext) => {
