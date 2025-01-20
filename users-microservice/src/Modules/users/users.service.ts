@@ -12,6 +12,7 @@ import LoginDto from './dtos/login.dto';
 import SignUpDto from './dtos/sign-up.dto';
 import { UserEntity } from './entities/User';
 import { LoginMetadata } from './users.controller';
+import { RoleType, UserStatus } from 'src/Shared/enums';
 
 @Injectable()
 export class UsersService {
@@ -42,25 +43,33 @@ export class UsersService {
   }
 
   async signUp(signUpDto: SignUpDto) {
-    const { email, password } = signUpDto;
-
-    if (!!(await this.repository.count({ where: { email: email } })))
-      throw new ConflictException(
-        'This email address is already used. Try a different email address.',
-      );
+    const { email, password, firstName, lastName, role, status, params } = signUpDto;
+  
+    if (await this.repository.count({ where: { email } })) {
+      throw new ConflictException('This email address is already used. Try a different email address.');
+    }
 
     const salt = await bcrypt.genSalt();
+    const hashedPassword = await this.hashPassword(password, salt);
+
     const newUser = new UserEntity();
     newUser.email = email;
+    newUser.firstName = firstName;
+    newUser.lastName = lastName;
+    newUser.password = hashedPassword;
     newUser.salt = salt;
-    newUser.password = await this.hashPassword(password, salt);
+    newUser.role = (role as RoleType);
+    newUser.status = (status as UserStatus);
+    newUser.params = params || {};
+  
     try {
       await this.repository.save(newUser);
       return {
-        message: 'Success',
+        message: 'User created successfully',
       };
     } catch (e) {
-      throw new InternalServerErrorException();
+      console.error('Error while saving user:', e);
+      throw new InternalServerErrorException('An error occurred while creating the user.');
     }
   }
 }

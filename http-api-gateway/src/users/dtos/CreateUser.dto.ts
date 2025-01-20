@@ -1,23 +1,41 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-  IsOptional,
   IsEmail,
+  Matches,
+  MaxLength,
+  MinLength,
+  IsOptional,
 } from 'class-validator';
+import { RoleType, UserStatus } from 'src/Shared/enums';
 
-export class CreateUserDto {
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(32)
-  username: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(64)
-  displayName?: string;
-
-  @IsNotEmpty()
+export default class CreateUserDto {
   @IsEmail()
-  email: string;
+  @ApiProperty({ required: true, example: 'mail@example.com' })
+  readonly email: string;
+
+  @ApiProperty({ required: true })
+  @MinLength(8)
+  @MaxLength(20)
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'Password too weak',
+  })
+  readonly password: string;
+
+  @ApiProperty({ required: true, example: 'John' })
+  readonly firstName: string;
+
+  @ApiProperty({ required: true, example: 'Doe' })
+  readonly lastName: string;
+
+  @ApiProperty({ required: false, example: 'USER' })
+  @IsOptional()
+  readonly role?: RoleType;
+
+  @ApiProperty({ required: false, example: 'ACTIVE' })
+  @IsOptional()
+  readonly status?: UserStatus;
+
+  @ApiProperty({ required: false, example: '{}' })
+  @IsOptional()
+  readonly params?: Record<string, unknown>;
 }

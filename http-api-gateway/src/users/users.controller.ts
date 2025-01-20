@@ -4,12 +4,14 @@ import {
   Post,
   Body,
   Get,
-  Param,
   HttpException,
+  Req,
+  Headers,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { CreateUserDto } from './dtos/CreateUser.dto';
-import { lastValueFrom } from 'rxjs';
+import CreateUserDto from './dtos/CreateUser.dto';
+import LoginDto from './dtos/Login.dto';
+import ReAuthDto from './dtos/reauth.dto';
 
 @Controller('users')
 export class UsersController {
@@ -17,16 +19,38 @@ export class UsersController {
 
   @Post()
   createUser(@Body() createUserDto: CreateUserDto) {
-    console.log(createUserDto);
-    return this.natsClient.send({ cmd: 'createUser' }, createUserDto);
+    return this.natsClient.send({ cmd: 'sign-up' }, createUserDto);
   }
 
-  @Get(':id')
-  async getUserById(@Param('id') id: string) {
-    const user = await lastValueFrom(
-      this.natsClient.send({ cmd: 'getUserById' }, { userId: id }),
+  @Post('login')
+  async login(
+    @Body() loginDto: LoginDto,
+    @Headers() headers: Headers,
+    @Req() req,
+  ) {
+    const ipAddress = req.connection.remoteAddress || '';
+    const fingerprint = req.fingerprint?.hash;
+    return this.natsClient.send(
+      { cmd: 'login' },
+      {
+        loginDto,
+        headers,
+        ipAddress,
+        fingerprint: fingerprint,
+      },
     );
-    if (user) return user;
-    else throw new HttpException('User Not Found', 404);
+  }
+
+  @Post('refresh-token')
+  async reAuth(@Body() body: ReAuthDto, @Req() req) {
+    const deviceId = req.fingerprint.hash;
+    const { refreshToken } = body;
+    return this.natsClient.send(
+      { cmd: 'refresh-token' },
+      {
+        refreshToken,
+        deviceId,
+      },
+    );
   }
 }

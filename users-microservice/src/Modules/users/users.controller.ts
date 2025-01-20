@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Req } from '@nestjs/common';
+import { Body, Controller, Req } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { UsersService } from './users.service';
 import { DeviceSessionsService } from '../device-sessions/device-sessions.service';
@@ -19,23 +19,21 @@ export class UsersMicroserviceController {
   }
 
   @MessagePattern({ cmd: 'login' })
-  async login(
-    @Req() req,
-    @Body() loginDto: LoginDto,
-    @Headers() headers: Headers,
-  ) {
-    const fingerprint = req.fingerprint;
-    const ipAddress = req.connection.remoteAddress;
+  async login(@Body() body) {
+    const { loginDto, headers, ipAddress, fingerprint } = body;
     const ua = headers['user-agent'];
-    const deviceId = fingerprint.hash;
-    const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+    const metaData: LoginMetadata = {
+      ipAddress,
+      ua,
+      deviceId: fingerprint,
+    };
     return this.usersService.login(loginDto, metaData);
   }
 
   @MessagePattern({ cmd: 'refresh-token' })
-  async reAuth(@Body() body: ReAuthDto, @Req() req) {
-    const deviceId = req.fingerprint.hash;
-    const { refreshToken } = body;
+  async reAuth(@Body() body) {
+    const { refreshToken, deviceId } = body;
+
     return this.deviceSessionsService.reAuth(deviceId, refreshToken);
   }
 }

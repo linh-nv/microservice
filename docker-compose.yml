@@ -38,8 +38,8 @@ services:
       PORT: 3000
       USERS_SERVICE_HOST: users_microservice
       USERS_SERVICE_PORT: 3001
-      social_media_microservice_SERVICE_HOST: social_media_microservice
-      social_media_microservice_SERVICE_PORT: 3002
+      SOCIAL_MEDIA_SERVICE_HOST: social_media_microservice
+      SOCIAL_MEDIA_SERVICE_PORT: 3002
 
   users_microservice:
     build: ./users-microservice

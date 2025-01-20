@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  Matches,
+  MaxLength,
+  MinLength,
+  IsOptional,
+} from 'class-validator';
+import { RoleType, UserStatus } from 'src/Shared/enums';
 
 export default class SignUpDto {
   @IsEmail()
@@ -10,9 +17,25 @@ export default class SignUpDto {
   @MinLength(8)
   @MaxLength(20)
   @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-    message: 'password too weak',
+    message: 'Password too weak',
   })
   readonly password: string;
-}
 
-// {email: string, password: string}
+  @ApiProperty({ required: true, example: 'John' })
+  readonly firstName: string;
+
+  @ApiProperty({ required: true, example: 'Doe' })
+  readonly lastName: string;
+
+  @ApiProperty({ required: false, example: 'USER' })
+  @IsOptional()
+  readonly role?: RoleType;
+
+  @ApiProperty({ required: false, example: 'ACTIVE' })
+  @IsOptional()
+  readonly status?: UserStatus;
+
+  @ApiProperty({ required: false, example: '{}' })
+  @IsOptional()
+  readonly params?: Record<string, unknown>;
+}

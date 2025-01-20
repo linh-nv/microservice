@@ -9,14 +9,13 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Cache } from 'cache-manager';
-import * as randomatic from 'randomatic';
 import AuthService from '../auth/auth.service';
 import addDay from '../helpers/addDay';
 import { LoginMetadata } from '../users/users.controller';
 import { Repository } from 'typeorm';
 import DeviceSessionEntity from './device-session.entity';
 import { JwtStrategy } from '../auth/guard/jwt.strategy';
-const { randomUUID } = require('crypto');
+const { randomUUID, randomBytes  } = require('crypto');
 const EXP_SESSION = 7; // 1 week
 export interface LoginRespionse {
   token: string;
@@ -34,8 +33,8 @@ export class DeviceSessionsService {
     private authService: AuthService,
   ) {}
 
-  generateSecretKey(length = 16) {
-    return randomatic('A0', length);
+  generateSecretKey(length = 16): string {
+    return randomBytes(length).toString('hex').slice(0, length);
   }
 
   async logout(userId: string, sessionId: string) {
@@ -87,7 +86,7 @@ export class DeviceSessionsService {
     const secretKey = this.generateSecretKey();
     const [token, refreshToken, expiredAt] = [
       JwtStrategy.generate(payload, secretKey),
-      randomatic('Aa0', 64),
+      randomBytes(32).toString('hex'),
       addDay(7),
     ];
 
@@ -117,7 +116,7 @@ export class DeviceSessionsService {
     };
     const [token, refreshToken] = [
       JwtStrategy.generate(payload, secretKey),
-      randomatic('Aa0', 64),
+      randomBytes(32).toString('hex'),
     ];
 
     const deviceName = metaData.deviceId;

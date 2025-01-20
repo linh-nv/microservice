@@ -6,9 +6,16 @@ import { UserEntity } from 'src/Modules/users/entities/User';
 import DeviceSessionEntity from '../device-sessions/device-session.entity';
 import { DeviceSessionsService } from '../device-sessions/device-sessions.service';
 import AuthService from '../auth/auth.service';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, DeviceSessionEntity])],
+  imports: [
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 60,
+    }),
+    TypeOrmModule.forFeature([UserEntity, DeviceSessionEntity])
+  ],
   controllers: [UsersMicroserviceController],
   providers: [UsersService, DeviceSessionsService, AuthService],
 })
