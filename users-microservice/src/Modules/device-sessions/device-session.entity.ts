@@ -32,5 +32,5 @@ export default class DeviceSessionEntity {
   @UpdateDateColumn()
   updatedAt: Date;
   @ManyToOne(() => UserEntity, (user) => user.id)
-  user: string;
+  user: UserEntity;
 }

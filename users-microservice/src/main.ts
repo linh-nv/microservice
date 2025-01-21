@@ -26,7 +26,8 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
     },
-  });  fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
+  });  
+  fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
 
   console.info(
     `Documentation: http://localhost:${process.env.PORT}/api`,
@@ -35,7 +36,7 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
     options: {
-      servers: ['nats://nats'],
+      servers: ['nats://localhost:4222'],
     },
   });
   await app.startAllMicroservices();

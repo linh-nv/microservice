@@ -1,6 +1,7 @@
 import { RoleType, UserStatus } from 'src/Shared/enums';
 import { AbstractEntity } from 'src/Shared/entities/abstract.entity';
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import DeviceSessionEntity from 'src/Modules/device-sessions/device-session.entity';
 
 @Entity({ name: 'users' })
 @Index(['email'], { unique: true })
@@ -31,6 +32,9 @@ export class UserEntity extends AbstractEntity {
 
   @Column()
   salt: string;
+
+  @OneToMany(() => DeviceSessionEntity, (deviceSessions) => deviceSessions.id)
+  deviceSessions: DeviceSessionEntity[];
 
   get fullName() {
     return this.firstName + ' ' + this.lastName;

@@ -3,6 +3,7 @@ import { UsersModule } from './Modules/users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './Modules/users/entities/User';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DeviceSessionsModule } from './Modules/device-sessions/device-sessions.module';
 
 @Module({
   imports: [
@@ -12,12 +13,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: () => ({
-        type: 'mysql',
-        host: process.env.DATABASE_HOST || 'mysql_db',
+        type: "mysql",
+        host: process.env.DATABASE_HOST || "localhost",
         port: parseInt(process.env.DATABASE_PORT, 10) || 3306,
-        username: process.env.DATABASE_USER || 'testuser',
-        password: process.env.DATABASE_PASSWORD || 'testuser123',
-        database: process.env.DATABASE_NAME || 'users_db',
+        database: process.env.DATABASE_NAME || "users_db",
+        username: process.env.DATABASE_USER || "testuser",
+        password: process.env.DATABASE_PASSWORD || "testuser123",
         entities: [UserEntity],
         synchronize: true,
         autoLoadEntities: true,
@@ -25,6 +26,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [ConfigService],
     }),
     forwardRef(() => UsersModule),
+    forwardRef(() => DeviceSessionsModule),
   ],
   controllers: [],
   providers: [],
