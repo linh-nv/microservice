@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Chat App</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      #messages {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+      #users {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 150px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+      .message {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chat App</h1>
+
+    <div id="users">
+      <h3>Active Users:</h3>
+      <ul id="user-list"></ul>
+    </div>
+
+    <div id="messages">
+      <h3>Messages:</h3>
+      <div id="message-list"></div>
+    </div>
+
+    <input type="text" id="username" placeholder="Enter your name" />
+    <button onclick="joinChat()">Join Chat</button>
+
+    <br /><br />
+
+    <input type="text" id="message" placeholder="Enter your message" />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+      const socket = io("http://localhost:8080");
+      let username = "";
+
+      socket.on("receiveMessage", (data) => {
+        const messageList = document.getElementById("message-list");
+        const message = document.createElement("div");
+        message.className = "message";
+        message.innerText = `${data.sender}: ${data.message}`;
+        messageList.appendChild(message);
+      });
+
+      socket.on("activeUsers", (users) => {
+        const userList = document.getElementById("user-list");
+        userList.innerHTML = "";
+        users.forEach((user) => {
+          const userItem = document.createElement("li");
+          userItem.innerText = user;
+          userList.appendChild(userItem);
+        });
+      });
+
+      function joinChat() {
+        username = document.getElementById("username").value;
+        if (!username) {
+          alert("Please enter your name!");
+          return;
+        }
+        socket.emit("join", username);
+      }
+
+      function sendMessage() {
+        const message = document.getElementById("message").value;
+        if (!message) {
+          alert("Please enter a message!");
+          return;
+        }
+        socket.emit("sendMessage", { sender: username, message });
+        document.getElementById("message").value = "";
+      }
+    </script>
+  </body>
+</html>

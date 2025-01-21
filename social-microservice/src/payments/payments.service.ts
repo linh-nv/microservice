@@ -5,7 +5,6 @@ import { Repository } from 'typeorm';
 import { CreatePaymentDto } from './dtos/CreatePayment.dto';
 import { ClientProxy } from '@nestjs/microservices';
 // import { lastValueFrom } from 'rxjs';
-import { User } from 'src/typeorm/entities/User';
 
 @Injectable()
 export class PaymentsService {
