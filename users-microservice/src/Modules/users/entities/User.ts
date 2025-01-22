@@ -15,7 +15,7 @@ export class UserEntity extends AbstractEntity {
   @Column({ nullable: false, type: 'varchar', name: 'last_name', length: 32 })
   lastName: string;
 
-  @Column({ unique: true, nullable: false, type: 'varchar', length: 128 })
+  @Column({ unique: false, nullable: false, type: 'varchar', length: 128 })
   email: string;
 
   @Column({ type: 'enum', enum: RoleType, default: RoleType.USER })
