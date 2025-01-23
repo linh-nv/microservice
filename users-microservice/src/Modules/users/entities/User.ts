@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { RoleType, UserStatus } from 'src/Shared/enums';
 import { AbstractEntity } from 'src/Shared/entities/abstract.entity';
 import { Column, Entity, Index, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
@@ -27,9 +28,11 @@ export class UserEntity extends AbstractEntity {
   @Column({ type: 'json' })
   params: Record<string, unknown>;
 
+  @Exclude()
   @Column()
   password: string;
 
+  @Exclude()
   @Column()
   salt: string;
 

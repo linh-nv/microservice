@@ -6,6 +6,6 @@ export default class LoginDto {
   @ApiProperty({ required: true, example: 'mail@example.com' })
   readonly email: string;
 
-  @ApiProperty({ required: true })
+  @ApiProperty({ required: true, example: 'Linh@123' })
   readonly password: string;
 }

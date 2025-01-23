@@ -43,10 +43,13 @@ export class UsersService {
   }
 
   async signUp(signUpDto: SignUpDto) {
-    const { email, password, firstName, lastName, role, status, params } = signUpDto;
-  
+    const { email, password, firstName, lastName, role, status, params } =
+      signUpDto;
+
     if (await this.repository.count({ where: { email } })) {
-      throw new ConflictException('This email address is already used. Try a different email address.');
+      throw new ConflictException(
+        'This email address is already used. Try a different email address.',
+      );
     }
 
     const salt = await bcrypt.genSalt();
@@ -58,10 +61,10 @@ export class UsersService {
     newUser.lastName = lastName;
     newUser.password = hashedPassword;
     newUser.salt = salt;
-    newUser.role = (role as RoleType);
-    newUser.status = (status as UserStatus);
+    newUser.role = role as RoleType;
+    newUser.status = status as UserStatus;
     newUser.params = params || {};
-  
+
     try {
       await this.repository.save(newUser);
       return {
@@ -69,7 +72,13 @@ export class UsersService {
       };
     } catch (e) {
       console.error('Error while saving user:', e);
-      throw new InternalServerErrorException('An error occurred while creating the user.');
+      throw new InternalServerErrorException(
+        'An error occurred while creating the user.',
+      );
     }
+  }
+
+  async me(id: string) {
+    return this.repository.findOne({ where: { id } });
   }
 }

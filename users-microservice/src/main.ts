@@ -1,8 +1,9 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
+import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 
 const Fingerprint = require('express-fingerprint');
 
@@ -18,6 +19,9 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalPipes(new ValidationPipe());
+
   const documentBuilder = new DocumentBuilder()
     .setTitle('User')
     .addBearerAuth();
@@ -26,17 +30,15 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true,
     },
-  });  
+  });
   fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
 
-  console.info(
-    `Documentation: http://localhost:${process.env.PORT}/api`,
-  );
+  console.info(`Documentation: http://localhost:${process.env.PORT}/api`);
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
     options: {
-      servers: ['nats://nats:4222'],
+      servers: ['nats://localhost:4222'],
     },
   });
   await app.startAllMicroservices();

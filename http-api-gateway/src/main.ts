@@ -30,7 +30,7 @@ async function bootstrap() {
   });
   fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
 
-  console.info(`Documentation: http://localhost:${process.env.PORT}/api/doc`);
+  console.info(`Documentation: http://localhost:${process.env.PORT || 3000}/api/doc`);
 
   const PORT = process.env.PORT || 3000;
   await app.listen(PORT, () => console.log(`Running on PORT ${PORT}`));

@@ -50,7 +50,7 @@
     <button onclick="sendMessage()">Send</button>
 
     <script>
-      const socket = io("http://localhost:8080");
+      const socket = io("http://192.168.1.29:8080");
       let username = "";
 
       socket.on("receiveMessage", (data) => {

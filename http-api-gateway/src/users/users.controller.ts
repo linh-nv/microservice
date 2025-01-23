@@ -53,4 +53,10 @@ export class UsersController {
       },
     );
   }
+
+  // @Get('me')
+  // async me(@UserId() userId: string) {
+
+  //   return this.natsClient.send({ cmd: 'me' }, { userId });
+  // }
 }

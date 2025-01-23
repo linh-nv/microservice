@@ -1,10 +1,14 @@
-import { Body, Controller, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Req, UseGuards } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { UsersService } from './users.service';
 import { DeviceSessionsService } from '../device-sessions/device-sessions.service';
 import SignUpDto from './dtos/sign-up.dto';
 import LoginDto from './dtos/login.dto';
 import ReAuthDto from './dtos/reauth.dto';
+import { LoginInterface } from 'src/Shared/interface';
+import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
+import { UserId } from 'src/decorators/user.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller()
 export class UsersMicroserviceController {
@@ -13,14 +17,21 @@ export class UsersMicroserviceController {
     private deviceSessionsService: DeviceSessionsService,
   ) {}
 
-  @MessagePattern({ cmd: 'sign-up' })
+  // @MessagePattern({ cmd: 'sign-up' })
+  @Post('sign-up')
   async signUp(@Body() signUpDto: SignUpDto) {
     return this.usersService.signUp(signUpDto);
   }
 
-  @MessagePattern({ cmd: 'login' })
-  async login(@Body() body) {
-    const { loginDto, headers, ipAddress, fingerprint } = body;
+  // @MessagePattern({ cmd: 'login' })
+  @Post('login')
+  async login(
+    @Body() loginDto: LoginDto,
+    @Headers() headers: Headers,
+    @Req() req,
+  ) {
+    const ipAddress = req.connection.remoteAddress || '';
+    const fingerprint = req.fingerprint?.hash;
     const ua = headers['user-agent'];
     const metaData: LoginMetadata = {
       ipAddress,
@@ -30,11 +41,20 @@ export class UsersMicroserviceController {
     return this.usersService.login(loginDto, metaData);
   }
 
-  @MessagePattern({ cmd: 'refresh-token' })
+  // @MessagePattern({ cmd: 'refresh-token' })
+  @Post('refresh-token')
   async reAuth(@Body() body) {
     const { refreshToken, deviceId } = body;
 
     return this.deviceSessionsService.reAuth(deviceId, refreshToken);
+  }
+
+  // @MessagePattern({ cmd: 'me' })
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async me(@UserId() id) {
+    return this.usersService.me(id);
   }
 }
 
