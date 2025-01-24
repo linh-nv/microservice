@@ -1,26 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { CreateChatDto } from './dto/create-chat.dto';
-import { UpdateChatDto } from './dto/update-chat.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Chat } from './entities/chat.entity';
 
 @Injectable()
 export class ChatService {
-  create(createChatDto: CreateChatDto) {
-    return 'This action adds a new chat';
+  constructor(
+    @InjectRepository(Chat)
+    private readonly chatRepository: Repository<Chat>,
+  ) {}
+
+  // Lưu một tin nhắn
+  async saveMessage(message: { sender: string; message: string }) {
+    const chat = this.chatRepository.create(message);
+    return this.chatRepository.save(chat);
   }
 
-  findAll() {
-    return `This action returns all chat`;
+  // Lưu nhiều tin nhắn (batch)
+  async saveMessages(messages: { sender: string; message: string }[]) {
+    const chats = this.chatRepository.create(messages);
+    return this.chatRepository.save(chats);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} chat`;
-  }
-
-  update(id: number, updateChatDto: UpdateChatDto) {
-    return `This action updates a #${id} chat`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} chat`;
+  async getAllMessages() {
+    return this.chatRepository.find({
+      order: { createdAt: 'ASC' }, // Lấy tin nhắn theo thứ tự thời gian
+    });
   }
 }
