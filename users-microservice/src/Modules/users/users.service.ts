@@ -2,7 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
-  UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -33,7 +33,7 @@ export class UsersService {
       !user ||
       user.password !== (await this.hashPassword(password, user.salt))
     ) {
-      throw new UnauthorizedException('Email or password incorect');
+      throw new NotFoundException('Email or password incorect');
     } else {
       return await this.deviceSessionsService.handleDeviceSession(
         user.id,

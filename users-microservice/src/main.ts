@@ -8,7 +8,9 @@ import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 const Fingerprint = require('express-fingerprint');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { cors: true });
+  app.setGlobalPrefix(`/api/v1`);
+
   app.use(
     Fingerprint({
       parameters: [
@@ -26,7 +28,7 @@ async function bootstrap() {
     .setTitle('User')
     .addBearerAuth();
   const document = SwaggerModule.createDocument(app, documentBuilder.build());
-  SwaggerModule.setup('api', app, document, {
+  SwaggerModule.setup('api/v1', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
