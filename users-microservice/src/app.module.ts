@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './Modules/users/entities/User';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DeviceSessionsModule } from './Modules/device-sessions/device-sessions.module';
+import { FriendModule } from './Modules/friend/friend.module';
+import { UserProfileModule } from './Modules/user-profile/user-profile.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { DeviceSessionsModule } from './Modules/device-sessions/device-sessions.
     }),
     forwardRef(() => UsersModule),
     forwardRef(() => DeviceSessionsModule),
+    forwardRef(() => FriendModule),
+    forwardRef(() => UserProfileModule),
   ],
   controllers: [],
   providers: [],

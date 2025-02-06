@@ -1,8 +1,17 @@
 import { Exclude } from 'class-transformer';
 import { RoleType, UserStatus } from 'src/Shared/enums';
 import { AbstractEntity } from 'src/Shared/entities/abstract.entity';
-import { Column, Entity, Index, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import DeviceSessionEntity from 'src/Modules/device-sessions/device-session.entity';
+import { UserProfileEntity } from 'src/Modules/user-profile/entities/user-profile.entities';
 
 @Entity({ name: 'users' })
 @Index(['email'], { unique: true })
@@ -42,4 +51,8 @@ export class UserEntity extends AbstractEntity {
   get fullName() {
     return this.firstName + ' ' + this.lastName;
   }
+
+  @OneToOne(() => UserProfileEntity, (profile) => profile.user)
+  @JoinColumn()
+  profile: UserProfileEntity;
 }

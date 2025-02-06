@@ -10,6 +10,6 @@ import { UsersService } from '../users/users.service';
 @Module({
   imports: [TypeOrmModule.forFeature([DeviceSessionEntity, UserEntity])],
   controllers: [DeviceSessionsController],
-  providers: [DeviceSessionsService, AuthService, UsersService],
+  providers: [DeviceSessionsService, AuthService],
 })
 export class DeviceSessionsModule {}

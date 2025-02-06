@@ -35,7 +35,7 @@ async function bootstrap() {
   });
   fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
 
-  console.info(`Documentation: http://localhost:${process.env.PORT}/api`);
+  console.info(`Documentation: http://localhost:${process.env.PORT}/api/v1`);
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
