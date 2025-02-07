@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   SerializeOptions,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
@@ -39,7 +40,6 @@ export class FriendService {
     currentPage: number;
     totalPages: number;
   }> {
-    // Set default values for pagination
     const page = Number(options.page) || 1;
     const limit = Number(options.limit) || 12;
     const skip = (page - 1) * limit;
@@ -49,22 +49,35 @@ export class FriendService {
       relations: ['friends'],
     });
 
-    if (!userProfile) {
-      throw new NotFoundException('User profile not found');
-    }
+    // Lấy danh sách ID bạn bè hiện tại
+    const friendIds = userProfile?.friends?.map((friend) => friend.id) ?? [];
+    // Lấy danh sách người dùng đã gửi lời mời kết bạn cho mình
+    const receivedRequestUsers = await this.friendRequestRepository.find({
+      where: { receiver: { id: userId } },
+      relations: ['sender'],
+    });
+    // Lấy danh sách người dùng mà mình đã gửi lời mời kết bạn
+    const sentRequestUsers = await this.friendRequestRepository.find({
+      where: { sender: { id: userId } },
+      relations: ['receiver'],
+    });
 
-    // Lấy danh sách bạn bè hiện tại
-    const friendIds = userProfile.friends.map((friend) => friend.id);
+    // Tạo danh sách ID cần loại trừ
+    const excludeUserIds = [
+      userId,
+      ...friendIds,
+      ...receivedRequestUsers.map((req) => req.sender.id),
+      ...sentRequestUsers.map((req) => req.receiver.id),
+    ];
 
-    // Tạo query builder để lấy cả tổng số bản ghi và danh sách đã phân trang
+    // Tạo query builder để lấy gợi ý kết bạn
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
-      .where('user.id != :userId', { userId })
-      .andWhere('user.id NOT IN (:...friendIds)', {
-        friendIds: friendIds.length ? friendIds : [''],
+      .where('user.id NOT IN (:...excludeUserIds)', {
+        excludeUserIds: excludeUserIds.length ? excludeUserIds : [''],
       });
 
-    // Thêm điều kiện lọc theo ngày nếu có
+    // Điều kiện lọc theo ngày nếu có
     if (options.startDate) {
       queryBuilder.andWhere('user.createdAt >= :startDate', {
         startDate: options.startDate,
@@ -199,8 +212,17 @@ export class FriendService {
       throw new NotFoundException('Friend request not found');
     }
 
-    friendRequest.status = FriendRequestStatus.REJECTED;
-    await this.friendRequestRepository.save(friendRequest);
+    try {
+      await this.friendRequestRepository.delete({
+        id: requestId,
+        receiver: { id: userId },
+        status: FriendRequestStatus.PENDING,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to reject friend request. Please try again later.',
+      );
+    }
   }
 
   async getPendingFriendRequests(
@@ -284,5 +306,109 @@ export class FriendService {
         status: FriendRequestStatus.PENDING,
       },
     });
+  }
+
+  async getSendFriendRequests(
+    userId: string,
+    options: FriendRequestsDto,
+  ): Promise<{
+    data: FriendRequestsDto[];
+    total: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    const {
+      page = options.page || 1,
+      limit = 12,
+      startDate,
+      endDate,
+    } = options;
+    const skip = (page - 1) * limit;
+
+    // Xây dựng điều kiện where
+    const whereCondition: any = {
+      sender: { id: userId },
+      status: FriendRequestStatus.PENDING,
+    };
+
+    // Thêm điều kiện lọc theo thời gian nếu có
+    if (startDate && endDate) {
+      whereCondition.createdAt = Between(
+        new Date(startDate),
+        new Date(endDate),
+      );
+    } else if (startDate) {
+      whereCondition.createdAt = MoreThanOrEqual(new Date(startDate));
+    } else if (endDate) {
+      whereCondition.createdAt = LessThanOrEqual(new Date(endDate));
+    }
+
+    // Đếm tổng số records
+    const total = await this.friendRequestRepository.count({
+      where: whereCondition,
+    });
+
+    // Lấy danh sách theo phân trang
+    const pendingRequests = await this.friendRequestRepository.find({
+      where: whereCondition,
+      relations: ['receiver'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const requestsWithReceiverProfile = await Promise.all(
+      pendingRequests.map(async (request) => {
+        const receiverProfile = await this.userProfileRepository.findOne({
+          where: { user: { id: request.receiver.id } },
+        });
+
+        return {
+          id: request.id,
+          receiverId: request.receiver.id,
+          fullName: request.receiver.fullName,
+          profile: receiverProfile,
+          createdAt: request.createdAt,
+        } as FriendRequestsDto;
+      }),
+    );
+
+    return {
+      data: requestsWithReceiverProfile,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async deleteSendFriendRequests(
+    requestId: string,
+    userId: string,
+  ): Promise<void> {
+    const friendRequest = await this.friendRequestRepository.findOne({
+      where: {
+        id: requestId,
+        sender: { id: userId },
+        status: FriendRequestStatus.PENDING,
+      },
+    });
+
+    if (!friendRequest) {
+      throw new NotFoundException(
+        'Friend request not found or you do not have permission to reject it',
+      );
+    }
+
+    try {
+      await this.friendRequestRepository.delete({
+        id: requestId,
+        sender: { id: userId },
+        status: FriendRequestStatus.PENDING,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to reject friend request. Please try again later.',
+      );
+    }
   }
 }

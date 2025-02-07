@@ -6,6 +6,7 @@ import {
   UseGuards,
   Query,
   Req,
+  Delete,
 } from '@nestjs/common';
 import { FriendService } from './friend.service';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
@@ -23,6 +24,22 @@ export class FriendController {
     @Query() options: FriendRequestsDto,
   ) {
     return this.friendService.getPendingFriendRequests(userId, options);
+  }
+
+  @Get('requests/send/pending')
+  async getSendFriendRequests(
+    @UserId() userId,
+    @Query() options: FriendRequestsDto,
+  ) {
+    return this.friendService.getSendFriendRequests(userId, options);
+  }
+
+  @Delete('requests/send/:requestId/delete')
+  async deleteSendFriendRequests(
+    @UserId('id') userId: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.friendService.deleteSendFriendRequests(requestId, userId);
   }
 
   @Get('requests/count')
@@ -56,7 +73,7 @@ export class FriendController {
     return this.friendService.acceptFriendRequest(requestId, userId);
   }
 
-  @Post('requests/:requestId/reject')
+  @Delete('requests/:requestId/reject')
   async rejectFriendRequest(
     @UserId('id') userId: string,
     @Param('requestId') requestId: string,
