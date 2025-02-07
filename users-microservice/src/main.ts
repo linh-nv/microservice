@@ -21,7 +21,11 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector), {
+      enableImplicitConversion: true,
+    }),
+  );
   app.useGlobalPipes(new ValidationPipe());
 
   const documentBuilder = new DocumentBuilder()

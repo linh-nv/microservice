@@ -2,16 +2,22 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  SerializeOptions,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { UserEntity } from '../users/entities/User';
 import { UserProfileEntity } from '../user-profile/entities/user-profile.entities';
 import {
   FriendRequestEntity,
   FriendRequestStatus,
 } from './entities/friend-request.entity';
-
+import { FriendRequestsDto } from './dto/friend-request.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { instanceToPlain } from 'class-transformer';
+@SerializeOptions({
+  excludeExtraneousValues: true,
+})
 @Injectable()
 export class FriendService {
   constructor(
@@ -21,12 +27,23 @@ export class FriendService {
     private userProfileRepository: Repository<UserProfileEntity>,
     @InjectRepository(FriendRequestEntity)
     private friendRequestRepository: Repository<FriendRequestEntity>,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async getSuggestedFriends(
     userId: string,
-    limit: number = 10,
-  ): Promise<UserEntity[]> {
+    options: FriendRequestsDto,
+  ): Promise<{
+    data: UserEntity[];
+    total: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    // Set default values for pagination
+    const page = Number(options.page) || 1;
+    const limit = Number(options.limit) || 12;
+    const skip = (page - 1) * limit;
+
     const userProfile = await this.userProfileRepository.findOne({
       where: { user: { id: userId } },
       relations: ['friends'],
@@ -39,17 +56,42 @@ export class FriendService {
     // Lấy danh sách bạn bè hiện tại
     const friendIds = userProfile.friends.map((friend) => friend.id);
 
-    // Lấy danh sách người dùng được gợi ý (không bao gồm bạn bè hiện tại)
-    const suggestedFriends = await this.userRepository
+    // Tạo query builder để lấy cả tổng số bản ghi và danh sách đã phân trang
+    const queryBuilder = this.userRepository
       .createQueryBuilder('user')
       .where('user.id != :userId', { userId })
       .andWhere('user.id NOT IN (:...friendIds)', {
         friendIds: friendIds.length ? friendIds : [''],
-      })
-      .limit(limit)
+      });
+
+    // Thêm điều kiện lọc theo ngày nếu có
+    if (options.startDate) {
+      queryBuilder.andWhere('user.createdAt >= :startDate', {
+        startDate: options.startDate,
+      });
+    }
+
+    if (options.endDate) {
+      queryBuilder.andWhere('user.createdAt <= :endDate', {
+        endDate: options.endDate,
+      });
+    }
+
+    // Đếm tổng số bản ghi thỏa mãn điều kiện
+    const total = await queryBuilder.getCount();
+
+    // Thêm phân trang và lấy dữ liệu
+    const suggestedFriends = await queryBuilder
+      .skip(skip)
+      .take(limit)
       .getMany();
 
-    return suggestedFriends;
+    return {
+      data: suggestedFriends,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async sendFriendRequest(
@@ -95,7 +137,14 @@ export class FriendService {
       status: FriendRequestStatus.PENDING,
     });
 
-    return this.friendRequestRepository.save(friendRequest);
+    this.friendRequestRepository.save(friendRequest);
+    this.eventEmitter.emit('friendRequest.created', {
+      requestId: friendRequest.id,
+      senderId,
+      receiverId,
+    });
+
+    return friendRequest;
   }
 
   async acceptFriendRequest(requestId: string, userId: string): Promise<void> {
@@ -156,41 +205,84 @@ export class FriendService {
 
   async getPendingFriendRequests(
     userId: string,
-  ): Promise<FriendRequestEntity[]> {
-    // Tìm tất cả các lời mời kết bạn đang ở trạng thái PENDING mà người dùng đã nhận được
-    const pendingRequests = await this.friendRequestRepository.find({
-      where: {
-        receiver: { id: userId },
-        status: FriendRequestStatus.PENDING,
-      },
-      relations: ['sender'],
-      // Sắp xếp theo thời gian tạo mới nhất
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    options: FriendRequestsDto,
+  ): Promise<{
+    data: FriendRequestsDto[];
+    total: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    const {
+      page = options.page || 1,
+      limit = 12,
+      startDate,
+      endDate,
+    } = options;
+    const skip = (page - 1) * limit;
 
-    // Nếu không có lời mời nào, trả về mảng rỗng
-    if (!pendingRequests.length) {
-      return [];
+    // Xây dựng điều kiện where
+    const whereCondition: any = {
+      receiver: { id: userId },
+      status: FriendRequestStatus.PENDING,
+    };
+
+    // Thêm điều kiện lọc theo thời gian nếu có
+    if (startDate && endDate) {
+      whereCondition.createdAt = Between(
+        new Date(startDate),
+        new Date(endDate),
+      );
+    } else if (startDate) {
+      whereCondition.createdAt = MoreThanOrEqual(new Date(startDate));
+    } else if (endDate) {
+      whereCondition.createdAt = LessThanOrEqual(new Date(endDate));
     }
 
-    // Bổ sung thông tin profile của người gửi để hiển thị
+    // Đếm tổng số records
+    const total = await this.friendRequestRepository.count({
+      where: whereCondition,
+    });
+
+    // Lấy danh sách theo phân trang
+    const pendingRequests = await this.friendRequestRepository.find({
+      where: whereCondition,
+      relations: ['sender'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
     const requestsWithSenderProfile = await Promise.all(
       pendingRequests.map(async (request) => {
         const senderProfile = await this.userProfileRepository.findOne({
           where: { user: { id: request.sender.id } },
         });
 
-        // Gắn thông tin profile vào sender
-        request.sender = Object.assign(request.sender, {
+        return {
+          id: request.id,
+          senderId: request.sender.id,
+          fullName: request.sender.fullName,
           profile: senderProfile,
-        });
-
-        return request;
+          createdAt: request.createdAt,
+        } as FriendRequestsDto;
       }),
     );
 
-    return requestsWithSenderProfile;
+    return {
+      data: requestsWithSenderProfile,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // Thêm phương thức đếm số lượng lời mời đang chờ
+  async countPendingRequests(userId: string): Promise<number> {
+    return this.friendRequestRepository.count({
+      where: {
+        receiver: { id: userId },
+        status: FriendRequestStatus.PENDING,
+      },
+    });
   }
 }

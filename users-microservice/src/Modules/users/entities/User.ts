@@ -1,4 +1,4 @@
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose, Transform } from 'class-transformer';
 import { RoleType, UserStatus } from 'src/Shared/enums';
 import { AbstractEntity } from 'src/Shared/entities/abstract.entity';
 import {
@@ -48,8 +48,10 @@ export class UserEntity extends AbstractEntity {
   @OneToMany(() => DeviceSessionEntity, (deviceSessions) => deviceSessions.id)
   deviceSessions: DeviceSessionEntity[];
 
-  get fullName() {
-    return this.firstName + ' ' + this.lastName;
+  @Expose()
+  @Transform(({ obj }) => `${obj.firstName} ${obj.lastName}`)
+  get fullName(): string {
+    return `${this.firstName} ${this.lastName}`;
   }
 
   @OneToOne(() => UserProfileEntity, (profile) => profile.user)

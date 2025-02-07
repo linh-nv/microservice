@@ -8,10 +8,10 @@ import { UserProfileEntity } from './entities/user-profile.entities';
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserProfileEntity]),
-    AuthModule, // Import AuthModule để sử dụng JwtAuthGuard
+    AuthModule,
   ],
   controllers: [UserProfileController],
   providers: [UserProfileService],
-  exports: [UserProfileService], // Export service nếu cần sử dụng ở module khác
+  exports: [UserProfileService],
 })
 export class UserProfileModule {}

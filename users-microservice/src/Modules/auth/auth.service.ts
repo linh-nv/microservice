@@ -27,9 +27,9 @@ export default class AuthService {
     const { deviceId, id, exp } = payload;
 
     const keyCache = this.getKeyCache(id, deviceId);
-    const secretKeyFromCache: string = await this.cacheManager.get(keyCache);
+    // const secretKeyFromCache: string = await this.cacheManager.get(keyCache);
 
-    if (secretKeyFromCache) return secretKeyFromCache;
+    // if (secretKeyFromCache) return secretKeyFromCache;
 
     const { secretKey } = await this.deviceSessionsRepository
       .createQueryBuilder('deviceSessions')
@@ -37,11 +37,11 @@ export default class AuthService {
       .andWhere('deviceSessions.userId = :id', { id })
       .getOne();
 
-    await this.cacheManager.set(
-      keyCache,
-      secretKey,
-      (exp - Math.floor(Date.now() / 1000)) * 1000,
-    );
+    // await this.cacheManager.set(
+    //   keyCache,
+    //   secretKey,
+    //   (exp - Math.floor(Date.now() / 1000)) * 1000,
+    // );
     return secretKey;
   }
 

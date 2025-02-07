@@ -27,6 +27,8 @@ export default class DeviceSessionEntity {
   expiredAt: Date;
   @Column()
   ipAddress: string;
+  @Column({ default: true })
+  isActive: boolean;
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
   @UpdateDateColumn()

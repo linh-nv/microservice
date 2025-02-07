@@ -16,12 +16,14 @@ import { Repository } from 'typeorm';
 import DeviceSessionEntity from './device-session.entity';
 import { JwtStrategy } from '../auth/guard/jwt.strategy';
 import { UserEntity } from '../users/entities/User';
-const { randomUUID, randomBytes  } = require('crypto');
+import { log } from 'console';
+const { randomUUID, randomBytes } = require('crypto');
 const EXP_SESSION = 7; // 1 week
 export interface LoginRespionse {
   token: string;
   refreshToken: string;
   expiredAt: Date;
+  deviceId?: string;
 }
 @ApiBearerAuth()
 @Injectable()
@@ -71,7 +73,6 @@ export class DeviceSessionsService {
       .where('session.refreshToken = :_refreshToken', { _refreshToken })
       .andWhere('session.deviceId = :deviceId', { deviceId })
       .getOne();
-
     if (
       !session ||
       new Date(session.expiredAt).valueOf() < new Date().valueOf()
@@ -96,7 +97,7 @@ export class DeviceSessionsService {
       refreshToken,
       expiredAt,
     });
-    return { token, refreshToken, expiredAt };
+    return { token, refreshToken, expiredAt, deviceId };
   }
 
   async handleDeviceSession(
@@ -136,11 +137,10 @@ export class DeviceSessionsService {
       id: currentDevice?.id || randomUUID(),
       ...newDeviceSession,
     });
-    return { token, refreshToken, expiredAt };
+    return { token, refreshToken, expiredAt, deviceId };
   }
 
   async getDeviceSessions(userId: string) {
-    
     return this.repository.find({
       where: {
         user: { id: userId },

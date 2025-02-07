@@ -6,6 +6,8 @@ import { UserProfileEntity } from '../user-profile/entities/user-profile.entitie
 import { FriendService } from './friend.service';
 import { FriendController } from './friend.controller';
 import { AuthModule } from '../auth/auth.module';
+import { FriendRequestsGateway } from './friend-requests.gateway';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -14,9 +16,10 @@ import { AuthModule } from '../auth/auth.module';
       UserEntity,
       UserProfileEntity,
     ]),
-    AuthModule
+    EventEmitterModule.forRoot(),
+    AuthModule,
   ],
   controllers: [FriendController],
-  providers: [FriendService],
+  providers: [FriendService, FriendRequestsGateway],
 })
 export class FriendModule {}
