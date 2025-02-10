@@ -6,7 +6,13 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
+import {
+  Between,
+  DataSource,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { UserEntity } from '../users/entities/User';
 import { UserProfileEntity } from '../user-profile/entities/user-profile.entities';
 import {
@@ -15,13 +21,16 @@ import {
 } from './entities/friend-request.entity';
 import { FriendRequestsDto } from './dto/friend-request.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { instanceToPlain } from 'class-transformer';
+import { GetFriendsDto } from './dto/get-friends.dto';
+import { DataProcessingHelper } from 'src/helpers/dataProcesser';
+import { PaginatedResult } from 'src/Shared/interface';
 @SerializeOptions({
   excludeExtraneousValues: true,
 })
 @Injectable()
 export class FriendService {
   constructor(
+    private dataSource: DataSource,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
     @InjectRepository(UserProfileEntity)
@@ -161,42 +170,66 @@ export class FriendService {
   }
 
   async acceptFriendRequest(requestId: string, userId: string): Promise<void> {
-    const friendRequest = await this.friendRequestRepository.findOne({
-      where: {
-        id: requestId,
-        receiver: { id: userId },
-        status: FriendRequestStatus.PENDING,
-      },
-      relations: ['sender', 'receiver'],
+    await this.dataSource.transaction(async (manager) => {
+      // Tìm friend request
+      const friendRequest = await manager.findOne(FriendRequestEntity, {
+        where: {
+          id: requestId,
+          receiver: { id: userId },
+          status: FriendRequestStatus.PENDING,
+        },
+        relations: ['sender', 'receiver'],
+      });
+
+      if (!friendRequest) {
+        throw new NotFoundException('Friend request not found');
+      }
+
+      // Cập nhật trạng thái friend request
+      friendRequest.status = FriendRequestStatus.ACCEPTED;
+      await manager.save(friendRequest);
+
+      // Tìm profile của cả hai người
+      let [senderProfile, receiverProfile] = await Promise.all([
+        manager.findOne(UserProfileEntity, {
+          where: { user: { id: friendRequest.sender.id } },
+          relations: ['friends'],
+        }),
+        manager.findOne(UserProfileEntity, {
+          where: { user: { id: friendRequest.receiver.id } },
+          relations: ['friends'],
+        }),
+      ]);
+
+      // Tạo profile mới nếu chưa tồn tại
+      if (!senderProfile) {
+        senderProfile = manager.create(UserProfileEntity, {
+          user: friendRequest.sender,
+          friends: [],
+        });
+        // Lưu profile mới để có ID
+        await manager.save(senderProfile);
+      }
+
+      if (!receiverProfile) {
+        receiverProfile = manager.create(UserProfileEntity, {
+          user: friendRequest.receiver,
+          friends: [],
+        });
+        // Lưu profile mới để có ID
+        await manager.save(receiverProfile);
+      }
+
+      // Thêm vào danh sách bạn bè
+      senderProfile.friends.push(friendRequest.receiver);
+      receiverProfile.friends.push(friendRequest.sender);
+
+      // Lưu các thay đổi
+      await Promise.all([
+        manager.save(senderProfile),
+        manager.save(receiverProfile),
+      ]);
     });
-
-    if (!friendRequest) {
-      throw new NotFoundException('Friend request not found');
-    }
-
-    // Cập nhật trạng thái lời mời
-    friendRequest.status = FriendRequestStatus.ACCEPTED;
-    await this.friendRequestRepository.save(friendRequest);
-
-    // Thêm vào danh sách bạn bè của cả hai người
-    const [senderProfile, receiverProfile] = await Promise.all([
-      this.userProfileRepository.findOne({
-        where: { user: { id: friendRequest.sender.id } },
-        relations: ['friends'],
-      }),
-      this.userProfileRepository.findOne({
-        where: { user: { id: friendRequest.receiver.id } },
-        relations: ['friends'],
-      }),
-    ]);
-
-    senderProfile.friends.push(friendRequest.receiver);
-    receiverProfile.friends.push(friendRequest.sender);
-
-    await Promise.all([
-      this.userProfileRepository.save(senderProfile),
-      this.userProfileRepository.save(receiverProfile),
-    ]);
   }
 
   async rejectFriendRequest(requestId: string, userId: string): Promise<void> {
@@ -310,75 +343,63 @@ export class FriendService {
 
   async getSendFriendRequests(
     userId: string,
-    options: FriendRequestsDto,
-  ): Promise<{
-    data: FriendRequestsDto[];
-    total: number;
-    currentPage: number;
-    totalPages: number;
-  }> {
-    const {
-      page = options.page || 1,
-      limit = 12,
-      startDate,
-      endDate,
-    } = options;
-    const skip = (page - 1) * limit;
-
-    // Xây dựng điều kiện where
-    const whereCondition: any = {
-      sender: { id: userId },
-      status: FriendRequestStatus.PENDING,
-    };
-
-    // Thêm điều kiện lọc theo thời gian nếu có
-    if (startDate && endDate) {
-      whereCondition.createdAt = Between(
-        new Date(startDate),
-        new Date(endDate),
-      );
-    } else if (startDate) {
-      whereCondition.createdAt = MoreThanOrEqual(new Date(startDate));
-    } else if (endDate) {
-      whereCondition.createdAt = LessThanOrEqual(new Date(endDate));
-    }
-
-    // Đếm tổng số records
-    const total = await this.friendRequestRepository.count({
-      where: whereCondition,
-    });
-
-    // Lấy danh sách theo phân trang
+    options: GetFriendsDto,
+  ): Promise<PaginatedResult<any>> {
     const pendingRequests = await this.friendRequestRepository.find({
-      where: whereCondition,
-      relations: ['receiver'],
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
+      where: {
+        sender: { id: userId },
+        status: FriendRequestStatus.PENDING,
+      },
+      relations: {
+        receiver: {
+          profile: true,
+        },
+      },
     });
 
-    const requestsWithReceiverProfile = await Promise.all(
+    const resonse = await Promise.all(
       pendingRequests.map(async (request) => {
-        const receiverProfile = await this.userProfileRepository.findOne({
-          where: { user: { id: request.receiver.id } },
-        });
-
         return {
-          id: request.id,
-          receiverId: request.receiver.id,
+          id: request.receiver.id,
+          firstName: request.receiver.firstName,
+          lastName: request.receiver.lastName,
+          email: request.receiver.email,
+          role: request.receiver.role,
+          status: request.receiver.status,
+          params: {},
+          profile: {
+            id: request.receiver.profile?.id,
+            avatarUrl: request.receiver.profile?.avatarUrl,
+            bio: request.receiver.profile?.bio,
+            birthday: request.receiver.profile?.birthday,
+            location: request.receiver.profile?.location,
+          },
           fullName: request.receiver.fullName,
-          profile: receiverProfile,
-          createdAt: request.createdAt,
-        } as FriendRequestsDto;
+        };
       }),
     );
+    const dataProcessor = new DataProcessingHelper(resonse || []);
 
-    return {
-      data: requestsWithReceiverProfile,
-      total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return dataProcessor
+      .search({
+        search: options.search,
+        searchFields: [
+          'receiver.firstName',
+          'receiver.lastName',
+          'receiver.fullName',
+          'receiver.email',
+          'receiver.profile.location',
+          'receiver.profile.bio',
+        ],
+      })
+      .sort({
+        sortBy: options.sortBy,
+        orderBy: options.orderBy,
+      })
+      .paginate({
+        page: options.page || 1,
+        limit: options.limit || 12,
+      });
   }
 
   async deleteSendFriendRequests(
@@ -410,5 +431,63 @@ export class FriendService {
         'Failed to reject friend request. Please try again later.',
       );
     }
+  }
+
+  async getFriends(
+    userId: string,
+    options: GetFriendsDto,
+  ): Promise<PaginatedResult<UserEntity>> {
+    const profile = await this.userProfileRepository.findOneOrFail({
+      where: { user: { id: userId } },
+      relations: {
+        user: true,
+        friends: {
+          profile: true,
+        },
+      },
+      select: {
+        id: true,
+        user: {
+          id: true,
+        },
+        friends: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          status: true,
+          profile: {
+            id: true,
+            avatarUrl: true,
+            location: true,
+            bio: true,
+            birthday: true,
+          },
+        },
+      },
+    });
+
+    const dataProcessor = new DataProcessingHelper(profile.friends || []);
+
+    return dataProcessor
+      .search({
+        search: options.search,
+        searchFields: [
+          'firstName',
+          'lastName',
+          'fullName',
+          'email',
+          'profile.location',
+          'profile.bio',
+        ],
+      })
+      .sort({
+        sortBy: options.sortBy,
+        orderBy: options.orderBy,
+      })
+      .paginate({
+        page: options.page || 1,
+        limit: options.limit || 12,
+      });
   }
 }

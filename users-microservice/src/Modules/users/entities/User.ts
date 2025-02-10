@@ -6,6 +6,7 @@ import {
   Entity,
   Index,
   JoinColumn,
+  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -55,6 +56,8 @@ export class UserEntity extends AbstractEntity {
   }
 
   @OneToOne(() => UserProfileEntity, (profile) => profile.user)
-  @JoinColumn()
   profile: UserProfileEntity;
+
+  @ManyToMany(() => UserProfileEntity, (profile) => profile.friends)
+  friendProfiles: UserProfileEntity[];
 }

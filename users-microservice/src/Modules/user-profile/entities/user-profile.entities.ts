@@ -27,11 +27,11 @@ export class UserProfileEntity extends AbstractEntity {
   @Column({ nullable: true, type: 'varchar', length: 50 })
   location: string;
 
-  @OneToOne(() => UserEntity)
+  @OneToOne(() => UserEntity, (user) => user.profile)
   @JoinColumn()
   user: UserEntity;
 
-  @ManyToMany(() => UserEntity)
+  @ManyToMany(() => UserEntity, (user) => user.friendProfiles) 
   @JoinTable({
     name: 'user_friends',
     joinColumn: {

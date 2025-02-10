@@ -1,10 +1,10 @@
 import * as jwt from 'jsonwebtoken';
 
-const EXP_2_MIN = 3 * 60;
+const EXP_TOKEN = 60 * 60;
 export class JwtStrategy {
   static generate(payload: object, serectKey: string) {
     return jwt.sign(
-      { ...payload, exp: Math.floor(Date.now() / 1000) + EXP_2_MIN },
+      { ...payload, exp: Math.floor(Date.now() / 1000) + EXP_TOKEN },
       serectKey,
     );
   }

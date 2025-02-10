@@ -12,6 +12,7 @@ import { FriendService } from './friend.service';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { UserId } from 'src/decorators/user.decorator';
 import { FriendRequestsDto } from './dto/friend-request.dto';
+import { GetFriendsDto } from './dto/get-friends.dto';
 
 @Controller('friends')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +30,7 @@ export class FriendController {
   @Get('requests/send/pending')
   async getSendFriendRequests(
     @UserId() userId,
-    @Query() options: FriendRequestsDto,
+    @Query() options: GetFriendsDto,
   ) {
     return this.friendService.getSendFriendRequests(userId, options);
   }
@@ -79,5 +80,13 @@ export class FriendController {
     @Param('requestId') requestId: string,
   ) {
     return this.friendService.rejectFriendRequest(requestId, userId);
+  }
+
+  @Get('/')
+  async getFriends(
+    @UserId('id') userId: string,
+    @Query() options: GetFriendsDto,
+  ) {
+    return this.friendService.getFriends(userId, options);
   }
 }
