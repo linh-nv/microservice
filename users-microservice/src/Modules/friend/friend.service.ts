@@ -437,7 +437,7 @@ export class FriendService {
     userId: string,
     options: GetFriendsDto,
   ): Promise<PaginatedResult<UserEntity>> {
-    const profile = await this.userProfileRepository.findOneOrFail({
+    const profile = await this.userProfileRepository.findOne({
       where: { user: { id: userId } },
       relations: {
         user: true,
@@ -467,7 +467,7 @@ export class FriendService {
       },
     });
 
-    const dataProcessor = new DataProcessingHelper(profile.friends || []);
+    const dataProcessor = new DataProcessingHelper(profile?.friends || []);
 
     return dataProcessor
       .search({
