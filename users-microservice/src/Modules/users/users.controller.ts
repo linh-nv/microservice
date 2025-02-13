@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Headers, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { UsersService } from './users.service';
 import { DeviceSessionsService } from '../device-sessions/device-sessions.service';
@@ -55,6 +64,13 @@ export class UsersMicroserviceController {
   @ApiBearerAuth()
   async me(@UserId() id) {
     return this.usersService.me(id);
+  }
+
+  @Get('user/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getUser(@Param('id') id: string) {
+    return this.usersService.getUser(id);
   }
 }
 

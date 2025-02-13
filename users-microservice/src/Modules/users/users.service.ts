@@ -81,4 +81,16 @@ export class UsersService {
   async me(id: string) {
     return this.repository.findOne({ where: { id } });
   }
+
+  async getUser(id: string) {
+    return this.repository.findOne({
+      where: { id },
+      relations: {
+        profile: true,
+        friendProfiles: {
+          user: true,
+        },
+      },
+    });
+  }
 }
