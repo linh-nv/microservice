@@ -6,6 +6,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DeviceSessionsModule } from './Modules/device-sessions/device-sessions.module';
 import { FriendModule } from './Modules/friend/friend.module';
 import { UserProfileModule } from './Modules/user-profile/user-profile.module';
+import { Chat } from './Modules/chat/entities/chat.entity';
+import { ChatModule } from './Modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -21,7 +23,7 @@ import { UserProfileModule } from './Modules/user-profile/user-profile.module';
         database: process.env.DATABASE_NAME || "users_db",
         username: process.env.DATABASE_USER || "testuser",
         password: process.env.DATABASE_PASSWORD || "testuser123",
-        entities: [UserEntity],
+        entities: [UserEntity, Chat],
         synchronize: true,
         autoLoadEntities: true,
       }),
@@ -31,6 +33,7 @@ import { UserProfileModule } from './Modules/user-profile/user-profile.module';
     forwardRef(() => DeviceSessionsModule),
     forwardRef(() => FriendModule),
     forwardRef(() => UserProfileModule),
+    forwardRef(() => ChatModule),
   ],
   controllers: [],
   providers: [],

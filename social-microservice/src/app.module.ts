@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PaymentsModule } from './payments/payments.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Payment } from './typeorm/entities/Payment';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatModule } from './chat/chat.module';
 import { Chat } from './chat/entities/chat.entity';
@@ -26,7 +24,6 @@ import { Chat } from './chat/entities/chat.entity';
       }),
       inject: [ConfigService],
     }),
-    PaymentsModule,
     ChatModule,
   ],
   controllers: [],
