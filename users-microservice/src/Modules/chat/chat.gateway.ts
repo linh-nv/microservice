@@ -8,6 +8,14 @@ import {
 import { ChatService } from './chat.service';
 import { Server, Socket } from 'socket.io';
 
+// Interface để định nghĩa cấu trúc tin nhắn
+interface MessagePayload {
+  sender: string;
+  receiver: string;
+  message: string;
+  timestamp?: number;
+}
+
 @WebSocketGateway(8080, {
   cors: {
     origin: '*',
@@ -17,96 +25,133 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  // Map lưu trữ kết nối socket của từng người dùng
+  private connectedClients = new Map<string, Socket>();
+
+  // Hàng đợi tin nhắn cho từng người dùng
   private messageQueue = new Map<
     string,
-    { sender: string; message: string }[]
-  >(); // Hàng đợi lưu tin nhắn
-  private rateLimitMap = new Map<string, number>(); // Tần suất gửi tin nhắn của mỗi user
+    { sender: string; receiver: string; message: string }[]
+  >();
 
-  private readonly MAX_MESSAGES = 10; // Giới hạn số tin nhắn trong một khoảng thời gian
-  private readonly TIME_WINDOW = 1000; // Thời gian giới hạn (1 giây)
+  // Bộ đếm tần suất gửi tin nhắn
+  private rateLimitMap = new Map<string, number>();
+
+  // Cấu hình giới hạn tin nhắn
+  private readonly MAX_MESSAGES = 10;
+  private readonly TIME_WINDOW = 1000; // 1 giây
 
   constructor(private readonly chatService: ChatService) {}
 
+  // Xử lý khi có kết nối mới
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    console.log(`New client connected: ${client.id}`);
   }
 
+  // Xử lý khi ngắt kết nối
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    // Xóa client khỏi danh sách kết nối
+    for (const [username, socket] of this.connectedClients.entries()) {
+      if (socket.id === client.id) {
+        this.connectedClients.delete(username);
+        console.log(`Client disconnected: ${username}`);
+        break;
+      }
+    }
+    this.broadcastOnlineUsers();
   }
 
+  // Sự kiện người dùng đăng nhập/join
+  @SubscribeMessage('join')
+  handleJoin(client: Socket, username: string) {
+    // Lưu socket của người dùng
+    this.connectedClients.set(username, client);
+    console.log(`${username} joined`);
+
+    // Phát sóng danh sách người dùng trực tuyến
+    this.broadcastOnlineUsers();
+  }
+
+  // Phát sóng danh sách người dùng trực tuyến
+  private broadcastOnlineUsers() {
+    const onlineUsers = Array.from(this.connectedClients.keys());
+    this.server.emit('onlineUsers', onlineUsers);
+  }
+
+  // Tải tin nhắn cũ
   @SubscribeMessage('loadMessages')
-  async loadMessages(client: Socket) {
-    console.log(`Loading messages for client: ${client.id}`);
-    const messages = await this.chatService.getAllMessages();
-    client.emit('allMessages', messages);
+  async loadMessages(client: Socket, username?: string) {
+    try {
+      // Nếu không truyền username, lấy tất cả tin nhắn
+      const messages = await this.chatService.getAllMessages(username);
+      client.emit('allMessages', messages);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
   }
 
+  // Gửi tin nhắn
   @SubscribeMessage('sendMessage')
-  async handleMessage(
-    client: Socket,
-    payload: { sender: string; message: string },
-  ) {
-    const { sender, message } = payload;
+  async handleMessage(client: Socket, payload: MessagePayload) {
+    const { sender, receiver, message } = payload;
     const now = Date.now();
-    const lastMessageTime = this.rateLimitMap.get(sender) || 0;
 
-    // 1. Throttling: Giới hạn tần suất gửi tin nhắn
+    // Kiểm tra tần suất gửi tin nhắn (rate limiting)
+    const lastMessageTime = this.rateLimitMap.get(sender) || 0;
     if (
       now - lastMessageTime < this.TIME_WINDOW &&
       this.getQueueSize(sender) >= this.MAX_MESSAGES
     ) {
-      console.log(`[Throttled] Message from ${sender}: ${message}`);
-      this.addToQueue(sender, { sender, message });
+      console.log(`[Throttled] Message from ${sender} to ${receiver}`);
+      this.addToQueue(sender, { sender, receiver, message });
       return;
     }
 
     // Cập nhật thời gian gửi tin nhắn cuối cùng
     this.rateLimitMap.set(sender, now);
 
-    // 2. Gửi tin nhắn đến client khác qua WebSocket
-    this.server.emit('receiveMessage', payload);
+    // Gửi tin nhắn đến người nhận (nếu online)
+    const receiverSocket = this.connectedClients.get(receiver);
+    if (receiverSocket) {
+      receiverSocket.emit('receiveMessage', payload);
+    }
 
-    // 3. Thêm vào hàng đợi
-    this.addToQueue(sender, { sender, message });
+    // Thêm tin nhắn vào hàng đợi để lưu
+    this.addToQueue(sender, { sender, receiver, message });
 
-    // 4. Batch lưu tin nhắn định kỳ
+    // Lưu tin nhắn vào cơ sở dữ liệu
     await this.batchSaveMessages(sender);
   }
 
-  @SubscribeMessage('join')
-  handleJoin(client: Socket, username: string) {
-    console.log(`${username} joined`);
-  }
-
-  // Hàm thêm tin nhắn vào hàng đợi
+  // Thêm tin nhắn vào hàng đợi
   private addToQueue(
     sender: string,
-    message: { sender: string; message: string },
+    message: { sender: string; receiver: string; message: string },
   ) {
     const userQueue = this.messageQueue.get(sender) || [];
     userQueue.push(message);
     this.messageQueue.set(sender, userQueue);
   }
 
-  // Hàm lấy kích thước hàng đợi
+  // Lấy kích thước hàng đợi
   private getQueueSize(sender: string): number {
     return (this.messageQueue.get(sender) || []).length;
   }
 
-  // Hàm batch lưu tin nhắn vào cơ sở dữ liệu
+  // Lưu tin nhắn theo batch
   private async batchSaveMessages(sender: string) {
     const userQueue = this.messageQueue.get(sender);
     if (!userQueue || userQueue.length === 0) {
       return;
     }
 
-    // Lưu tin nhắn vào database thông qua ChatService
     try {
+      // Lưu tin nhắn vào database
       await this.chatService.saveMessages(userQueue);
       console.log(`[Saved] ${userQueue.length} messages for ${sender}`);
-      this.messageQueue.set(sender, []); // Xóa hàng đợi sau khi lưu
+
+      // Xóa hàng đợi sau khi lưu
+      this.messageQueue.set(sender, []);
     } catch (error) {
       console.error(`[Error Saving Messages]`, error);
     }

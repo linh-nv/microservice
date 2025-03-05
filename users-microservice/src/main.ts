@@ -41,12 +41,12 @@ async function bootstrap() {
 
   console.info(`Documentation: http://localhost:${process.env.PORT}/api/v1`);
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.NATS,
-    options: {
-      servers: ['nats://localhost:4222'],
-    },
-  });
+  // app.connectMicroservice<MicroserviceOptions>({
+  //   transport: Transport.NATS,
+  //   options: {
+  //     servers: ['nats://localhost:4222'],
+  //   },
+  // });
   await app.startAllMicroservices();
   await app.listen(process.env.PORT);
   console.log('Users Microservice is Running!');

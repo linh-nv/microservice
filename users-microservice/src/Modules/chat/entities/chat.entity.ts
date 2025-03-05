@@ -14,6 +14,9 @@ export class Chat {
   sender: string;
 
   @Column()
+  receiver: string;
+
+  @Column('text')
   message: string;
 
   @CreateDateColumn()
