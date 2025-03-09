@@ -15,45 +15,50 @@ import DeviceSessionEntity from 'src/Modules/device-sessions/device-session.enti
 import { UserProfileEntity } from 'src/Modules/user-profile/entities/user-profile.entities';
 
 @Entity({ name: 'users' })
-@Index(['email'], { unique: true })
+// @Index(['email'], { unique: true })
 export class UserEntity extends AbstractEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: any;
 
-  @Column({ nullable: false, type: 'varchar', name: 'first_name', length: 32 })
-  firstName: string;
+  @Column({ nullable: false, type: 'varchar', name: 'name', length: 32 })
+  name: string;
+  // @Column({ nullable: false, type: 'varchar', name: 'first_name', length: 32 })
+  // firstName: string;
 
-  @Column({ nullable: false, type: 'varchar', name: 'last_name', length: 32 })
-  lastName: string;
+  // @Column({ nullable: false, type: 'varchar', name: 'last_name', length: 32 })
+  // lastName: string;
 
-  @Column({ unique: false, nullable: false, type: 'varchar', length: 128 })
+  @Column({ unique: true, nullable: false, type: 'varchar', length: 128 })
   email: string;
 
-  @Column({ type: 'enum', enum: RoleType, default: RoleType.USER })
-  role: RoleType;
+  @Column({ nullable: true, type: 'timestamp' })
+  email_verified_at: string;
 
-  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
-  status: UserStatus;
+  // @Column({ type: 'enum', enum: RoleType, default: RoleType.USER })
+  // role: RoleType;
 
-  @Column({ type: 'json' })
-  params: Record<string, unknown>;
+  // @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
+  // status: UserStatus;
+
+  // @Column({ type: 'json' })
+  // params: Record<string, unknown>;
 
   @Exclude()
   @Column()
   password: string;
 
-  @Exclude()
-  @Column()
-  salt: string;
+  // @Exclude()
+  // @Column()
+  // salt: string;
 
-  @OneToMany(() => DeviceSessionEntity, (deviceSessions) => deviceSessions.id)
-  deviceSessions: DeviceSessionEntity[];
+  // @OneToMany(() => DeviceSessionEntity, (deviceSessions) => deviceSessions.id)
+  // deviceSessions: DeviceSessionEntity[];
 
-  @Expose()
-  @Transform(({ obj }) => `${obj.firstName} ${obj.lastName}`)
-  get fullName(): string {
-    return `${this.firstName} ${this.lastName}`;
-  }
+  // @Expose()
+  // @Transform(({ obj }) => `${obj.firstName} ${obj.lastName}`)
+  // get fullName(): string {
+  //   return `${this.firstName} ${this.lastName}`;
+  // }
 
   @OneToOne(() => UserProfileEntity, (profile) => profile.user)
   profile: UserProfileEntity;

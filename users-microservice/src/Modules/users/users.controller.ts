@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
@@ -26,51 +27,59 @@ export class UsersMicroserviceController {
     private deviceSessionsService: DeviceSessionsService,
   ) {}
 
-  // @MessagePattern({ cmd: 'sign-up' })
-  @Post('sign-up')
-  async signUp(@Body() signUpDto: SignUpDto) {
-    return this.usersService.signUp(signUpDto);
-  }
+  // // @MessagePattern({ cmd: 'sign-up' })
+  // @Post('sign-up')
+  // async signUp(@Body() signUpDto: SignUpDto) {
+  //   return this.usersService.signUp(signUpDto);
+  // }
 
-  // @MessagePattern({ cmd: 'login' })
-  @Post('login')
-  async login(
-    @Body() loginDto: LoginDto,
-    @Headers() headers: Headers,
-    @Req() req,
-  ) {
-    const ipAddress = req.connection.remoteAddress || '';
-    const fingerprint = req.fingerprint?.hash;
-    const ua = headers['user-agent'];
-    const metaData: LoginMetadata = {
-      ipAddress,
-      ua,
-      deviceId: fingerprint,
-    };
-    return this.usersService.login(loginDto, metaData);
-  }
+  // // @MessagePattern({ cmd: 'login' })
+  // @Post('login')
+  // async login(
+  //   @Body() loginDto: LoginDto,
+  //   @Headers() headers: Headers,
+  //   @Req() req,
+  // ) {
+  //   const ipAddress = req.connection.remoteAddress || '';
+  //   const fingerprint = req.fingerprint?.hash;
+  //   const ua = headers['user-agent'];
+  //   const metaData: LoginMetadata = {
+  //     ipAddress,
+  //     ua,
+  //     deviceId: fingerprint,
+  //   };
+  //   return this.usersService.login(loginDto, metaData);
+  // }
 
-  // @MessagePattern({ cmd: 'refresh-token' })
-  @Post('refresh-token')
-  async reAuth(@Body() body) {
-    const { refreshToken, deviceId } = body;
+  // // @MessagePattern({ cmd: 'refresh-token' })
+  // @Post('refresh-token')
+  // async reAuth(@Body() body) {
+  //   const { refreshToken, deviceId } = body;
 
-    return this.deviceSessionsService.reAuth(deviceId, refreshToken);
-  }
+  //   return this.deviceSessionsService.reAuth(deviceId, refreshToken);
+  // }
 
-  // @MessagePattern({ cmd: 'me' })
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  async me(@UserId() id) {
-    return this.usersService.me(id);
-  }
+  // // @MessagePattern({ cmd: 'me' })
+  // @Get('me')
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // async me(@UserId() id) {
+  //   return this.usersService.me(id);
+  // }
 
-  @Get('user/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  async getUser(@Param('id') id: string) {
-    return this.usersService.getUser(id);
+  // @Get('user/:id')
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // async getUser(@Param('id') id: string) {
+  //   return this.usersService.getUser(id);
+  // }
+
+  @Post('register')
+  async register(@Body() register, @Headers() token) {
+    const tokenValue = token.authorization.startsWith('Bearer ') ? token.authorization.slice(7) : token;
+    
+    if (tokenValue != process.env.JWT_SECRET) throw new UnauthorizedException(token);
+    return this.usersService.register(register);
   }
 }
 

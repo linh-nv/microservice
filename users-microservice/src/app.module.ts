@@ -1,12 +1,12 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { UsersModule } from './Modules/users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserEntity } from './Modules/users/entities/User';
+// import { UserEntity } from './Modules/users/entities/User';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DeviceSessionsModule } from './Modules/device-sessions/device-sessions.module';
 import { FriendModule } from './Modules/friend/friend.module';
 import { UserProfileModule } from './Modules/user-profile/user-profile.module';
-import { Chat } from './Modules/chat/entities/chat.entity';
+// import { Chat } from './Modules/chat/entities/chat.entity';
 import { ChatModule } from './Modules/chat/chat.module';
 
 @Module({
@@ -20,11 +20,11 @@ import { ChatModule } from './Modules/chat/chat.module';
         type: "mysql",
         host: process.env.DATABASE_HOST || "localhost",
         port: parseInt(process.env.DATABASE_PORT, 10) || 3306,
-        database: process.env.DATABASE_NAME || "users_db",
+        database: process.env.DATABASE_NAME || "test",
         username: process.env.DATABASE_USER || "root",
         password: process.env.DATABASE_PASSWORD || "",
-        entities: [UserEntity, Chat],
-        synchronize: true,
+        // entities: [UserEntity, Chat],
+        synchronize: process.env.SYNCHRONIZE === 'true' && process.env.NODE_ENV !== 'production',
         autoLoadEntities: true,
       }),
       inject: [ConfigService],

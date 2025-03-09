@@ -316,7 +316,8 @@ export class FriendService {
         return {
           id: request.id,
           senderId: request.sender.id,
-          fullName: request.sender.fullName,
+          name: request.sender.name,
+          // fullName: request.sender.fullName,
           profile: senderProfile,
           createdAt: request.createdAt,
         } as FriendRequestsDto;
@@ -361,11 +362,12 @@ export class FriendService {
       pendingRequests.map(async (request) => {
         return {
           id: request.receiver.id,
-          firstName: request.receiver.firstName,
-          lastName: request.receiver.lastName,
+          // firstName: request.receiver.firstName,
+          // lastName: request.receiver.lastName,
+          name: request.receiver.name,
           email: request.receiver.email,
-          role: request.receiver.role,
-          status: request.receiver.status,
+          // role: request.receiver.role,
+          // status: request.receiver.status,
           params: {},
           profile: {
             id: request.receiver.profile?.id,
@@ -374,7 +376,7 @@ export class FriendService {
             birthday: request.receiver.profile?.birthday,
             location: request.receiver.profile?.location,
           },
-          fullName: request.receiver.fullName,
+          // fullName: request.receiver.fullName,
         };
       }),
     );
@@ -452,10 +454,11 @@ export class FriendService {
         },
         friends: {
           id: true,
-          firstName: true,
-          lastName: true,
+          // firstName: true,
+          // lastName: true,
+          name: true,
           email: true,
-          status: true,
+          // status: true,
           profile: {
             id: true,
             avatarUrl: true,
