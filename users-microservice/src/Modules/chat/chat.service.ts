@@ -33,18 +33,30 @@ export class ChatService {
   }
 
   // Lấy tất cả tin nhắn, có thể lọc theo username
-  async getAllMessages(username?: string) {
-    // Nếu không có username, trả về toàn bộ tin nhắn
-    if (!username) {
-      return this.chatRepository.find({
+  async getAllMessages(sender: string, receiver: string) {
+    // Kiểm tra và log thông tin đầu vào
+    console.log('Getting chat messages. Sender:', sender, 'Receiver:', receiver);
+    
+    if (!sender || !receiver) {
+      console.warn('Missing sender or receiver in getAllMessages');
+      return []; // Trả về mảng rỗng nếu thiếu thông tin
+    }
+    
+    try {
+      // Tìm tin nhắn hai chiều - cả tin nhắn gửi và nhận
+      const messages = await this.chatRepository.find({
+        where: [
+          { sender: sender, receiver: receiver },
+          { sender: receiver, receiver: sender }
+        ],
         order: { createdAt: 'ASC' },
       });
+      
+      console.log(`Found ${messages.length} messages between ${sender} and ${receiver}`);
+      return messages;
+    } catch (error) {
+      console.error('Database error in getAllMessages:', error);
+      throw error; // Ném lỗi để xử lý ở mức cao hơn
     }
-
-    // Lấy tin nhắn liên quan đến người dùng (là sender hoặc receiver)
-    return this.chatRepository.find({
-      where: [{ sender: username }, { receiver: username }],
-      order: { createdAt: 'ASC' },
-    });
   }
 }

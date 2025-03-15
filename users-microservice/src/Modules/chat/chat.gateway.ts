@@ -80,13 +80,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Tải tin nhắn cũ
   @SubscribeMessage('loadMessages')
-  async loadMessages(client: Socket, username?: string) {
+  async loadMessages(client: Socket, payload: any) {
     try {
-      // Nếu không truyền username, lấy tất cả tin nhắn
-      const messages = await this.chatService.getAllMessages(username);
+      let sender: string;
+      let receiver: string;
+
+      // Kiểm tra xem payload có phải là mảng không và trích xuất dữ liệu phù hợp
+      if (Array.isArray(payload)) {
+        [sender, receiver] = payload; // Trích xuất sender và receiver từ mảng
+      } else {
+        // Trường hợp này là để tương thích ngược nếu có code cũ gọi theo cách cũ
+        sender = payload;
+        receiver = arguments[2];
+      }
+
+      console.log('Loading messages between:', sender, 'and', receiver);
+
+      // Gọi service để lấy tin nhắn
+      const messages = await this.chatService.getAllMessages(sender, receiver);
+
+      // Gửi tin nhắn về client
       client.emit('allMessages', messages);
     } catch (error) {
       console.error('Error loading messages:', error);
+      // Gửi thông báo lỗi về client
+      client.emit('messageError', {
+        message: 'Không thể tải tin nhắn',
+        details: error.message,
+      });
     }
   }
 
