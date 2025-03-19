@@ -81,6 +81,13 @@ export class UsersMicroserviceController {
     if (tokenValue != process.env.JWT_SECRET) throw new UnauthorizedException(token);
     return this.usersService.register(register);
   }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async me(@Headers() id) {
+    return this.usersService.me(id);
+  }
 }
 
 export interface LoginMetadata {

@@ -7,29 +7,31 @@ import {
   Query,
   Req,
   Delete,
+  Headers,
 } from '@nestjs/common';
 import { FriendService } from './friend.service';
-import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { UserId } from 'src/decorators/user.decorator';
 import { FriendRequestsDto } from './dto/friend-request.dto';
 import { GetFriendsDto } from './dto/get-friends.dto';
+import { JwtAuthGuard } from '../auth2/jwt-auth.guard';
 
 @Controller('friends')
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class FriendController {
   constructor(private readonly friendService: FriendService) {}
 
   @Get('requests/pending')
   async getPendingRequests(
-    @UserId() userId,
+    @Headers('id') userId,
     @Query() options: FriendRequestsDto,
   ) {
+    console.log('userId', userId);
     return this.friendService.getPendingFriendRequests(userId, options);
   }
 
   @Get('requests/send/pending')
   async getSendFriendRequests(
-    @UserId() userId,
+    @Headers('id') userId,
     @Query() options: GetFriendsDto,
   ) {
     return this.friendService.getSendFriendRequests(userId, options);
@@ -37,14 +39,14 @@ export class FriendController {
 
   @Delete('requests/send/:requestId/delete')
   async deleteSendFriendRequests(
-    @UserId('id') userId: string,
+    @Headers('id') userId: string,
     @Param('requestId') requestId: string,
   ) {
     return this.friendService.deleteSendFriendRequests(requestId, userId);
   }
 
   @Get('requests/count')
-  async countPendingRequests(@UserId() userId) {
+  async countPendingRequests(@Headers('id') userId) {
     return {
       count: await this.friendService.countPendingRequests(userId),
     };
@@ -52,7 +54,7 @@ export class FriendController {
 
   @Get('suggestions')
   async getSuggestedFriends(
-    @UserId('id') userId: string,
+    @Headers('id') userId: string,
     @Query() options: FriendRequestsDto,
   ) {
     return this.friendService.getSuggestedFriends(userId, options);
@@ -60,7 +62,7 @@ export class FriendController {
 
   @Post('requests/send/:receiverId')
   async sendFriendRequest(
-    @UserId('id') userId: string,
+    @Headers('id') userId: string,
     @Param('receiverId') receiverId: string,
   ) {
     return this.friendService.sendFriendRequest(userId, receiverId);
@@ -68,7 +70,7 @@ export class FriendController {
 
   @Post('requests/:requestId/accept')
   async acceptFriendRequest(
-    @UserId('id') userId: string,
+    @Headers('id') userId: string,
     @Param('requestId') requestId: string,
   ) {
     return this.friendService.acceptFriendRequest(requestId, userId);
@@ -76,7 +78,7 @@ export class FriendController {
 
   @Delete('requests/:requestId/reject')
   async rejectFriendRequest(
-    @UserId('id') userId: string,
+    @Headers('id') userId: string,
     @Param('requestId') requestId: string,
   ) {
     return this.friendService.rejectFriendRequest(requestId, userId);
@@ -84,7 +86,7 @@ export class FriendController {
 
   @Get('/')
   async getFriends(
-    @UserId('id') userId: string,
+    @Headers('id') userId: string,
     @Query() options: GetFriendsDto,
   ) {
     return this.friendService.getFriends(userId, options);

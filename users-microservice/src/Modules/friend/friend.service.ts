@@ -24,6 +24,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GetFriendsDto } from './dto/get-friends.dto';
 import { DataProcessingHelper } from 'src/helpers/dataProcesser';
 import { PaginatedResult } from 'src/Shared/interface';
+import { log } from 'console';
 @SerializeOptions({
   excludeExtraneousValues: true,
 })
@@ -120,6 +121,18 @@ export class FriendService {
     senderId: string,
     receiverId: string,
   ): Promise<FriendRequestEntity> {
+    // Verify both users exist
+    console.log('senderId', senderId);
+    console.log('receiverId', receiverId);
+    const [sender, receiver] = await Promise.all([
+      this.userRepository.findOne({ where: { id: senderId } }),
+      this.userRepository.findOne({ where: { id: receiverId } }),
+    ]);
+
+    if (!sender || !receiver) {
+      throw new NotFoundException('One or both users not found');
+    }
+
     // Kiểm tra xem đã có lời mời kết bạn chưa
     const existingRequest = await this.friendRequestRepository.findOne({
       where: [

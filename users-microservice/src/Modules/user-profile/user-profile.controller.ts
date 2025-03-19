@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Headers,
 } from '@nestjs/common';
 import { UserProfileService } from './user-profile.service';
 
@@ -22,7 +23,10 @@ export class UserProfileController {
   constructor(private readonly userProfileService: UserProfileService) {}
 
   @Post()
-  create(@Body() createUserProfileDto: CreateUserProfileDto, @UserId('id') userId: string) {
+  create(
+    @Body() createUserProfileDto: CreateUserProfileDto,
+    @Headers('id') userId: string,
+  ) {
     return this.userProfileService.create(createUserProfileDto, userId);
   }
 

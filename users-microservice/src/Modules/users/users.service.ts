@@ -78,9 +78,9 @@ export class UsersService {
   //   }
   // }
 
-  // async me(id: any) {
-  //   return this.repository.findOne({ where: { id } });
-  // }
+  async me(id: any) {
+    return this.repository.findOne({ where: { id } });
+  }
 
   async getUser(id: string) {
     return this.repository.findOne({
