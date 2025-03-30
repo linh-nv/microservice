@@ -67,12 +67,12 @@ export class UsersMicroserviceController {
   //   return this.usersService.me(id);
   // }
 
-  // @Get('user/:id')
+  @Get('user/:id')
   // @UseGuards(JwtAuthGuard)
-  // @ApiBearerAuth()
-  // async getUser(@Param('id') id: string) {
-  //   return this.usersService.getUser(id);
-  // }
+  @ApiBearerAuth()
+  async getUser(@Param('id') id: string) {
+    return this.usersService.getUser(id);
+  }
 
   @Post('register')
   async register(@Body() register, @Headers() token) {
@@ -83,7 +83,7 @@ export class UsersMicroserviceController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async me(@Headers() id) {
     return this.usersService.me(id);

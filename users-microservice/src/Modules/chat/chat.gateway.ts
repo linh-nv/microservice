@@ -16,7 +16,7 @@ interface MessagePayload {
   timestamp?: number;
 }
 
-@WebSocketGateway(8080, {
+@WebSocketGateway(Number(process.env.SOCKET_PORT) || 3030, {
   cors: {
     origin: '*',
   },

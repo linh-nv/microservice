@@ -48,7 +48,7 @@ async function bootstrap() {
   //   },
   // });
   await app.startAllMicroservices();
-  await app.listen(process.env.PORT);
+  await app.listen(process.env.PORT || 3001);
   console.log('Users Microservice is Running!');
 }
 bootstrap();
